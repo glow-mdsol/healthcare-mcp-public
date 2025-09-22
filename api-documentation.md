@@ -21,8 +21,13 @@ Look up drug information from the FDA database.
   - `adverse_events`: Reported adverse events
 
 **Example Request:**
-```python
-result = await fda_drug_lookup(drug_name="aspirin", search_type="label")
+```javascript
+// Using the HTTP API
+const response = await fetch('http://localhost:3000/api/fda?drug_name=aspirin&search_type=label');
+const result = await response.json();
+
+// Or using the MCP tool directly
+const result = await callTool('fda_drug_lookup', { drug_name: "aspirin", search_type: "label" });
 ```
 
 **Example Response:**
@@ -63,7 +68,9 @@ result = await fda_drug_lookup(drug_name="aspirin", search_type="label")
 **Testing:**
 Use the test file to test this tool:
 ```bash
-python -m tests.run_tests --fda
+npm test
+# Or test the HTTP endpoint directly:
+curl "http://localhost:3000/api/fda?drug_name=aspirin&search_type=label"
 ```
 
 **Change Log (April 28, 2025):**
@@ -86,8 +93,13 @@ Search for medical literature in the PubMed database.
 - `date_range`: Limit to articles published within years (optional, e.g. '5' for last 5 years)
 
 **Example Request:**
-```python
-result = await pubmed_search(query="diabetes treatment", max_results=3, date_range="2")
+```javascript
+// Using the HTTP API
+const response = await fetch('http://localhost:3000/api/pubmed?query=diabetes%20treatment&max_results=3&date_range=2');
+const result = await response.json();
+
+// Or using the MCP tool directly
+const result = await callTool('pubmed_search', { query: "diabetes treatment", max_results: 3, date_range: "2" });
 ```
 
 **Example Response:**
@@ -141,7 +153,9 @@ result = await pubmed_search(query="diabetes treatment", max_results=3, date_ran
 **Testing:**
 Use the test file to test this tool:
 ```bash
-python -m tests.run_tests --pubmed
+npm test
+# Or test the HTTP endpoint directly:
+curl "http://localhost:3000/api/pubmed?query=diabetes%20treatment&max_results=3"
 ```
 
 ### 3. Health Topics
@@ -159,8 +173,13 @@ Get evidence-based health information on various topics from Health.gov.
   - Supported values: "en" (English), "es" (Spanish)
 
 **Example Request:**
-```python
-result = await health_topics(topic="nutrition", language="en")
+```javascript
+// Using the HTTP API
+const response = await fetch('http://localhost:3000/api/health_finder?topic=nutrition&language=en');
+const result = await response.json();
+
+// Or using the MCP tool directly
+const result = await callTool('health_topics', { topic: "nutrition", language: "en" });
 ```
 
 **Example Response:**
@@ -205,7 +224,9 @@ result = await health_topics(topic="nutrition", language="en")
 **Testing:**
 Use the test file to test this tool:
 ```bash
-python -m tests.run_tests --health
+npm test
+# Or test the HTTP endpoint directly:
+curl "http://localhost:3000/api/health_finder?topic=nutrition"
 ```
 
 ## Additional Current Tools
@@ -226,8 +247,13 @@ Search for clinical trials by condition, status, and other parameters.
 - `max_results`: Maximum number of results to return (optional, default: 10)
 
 **Example Request:**
-```python
-result = await clinical_trials_search(condition="breast cancer", status="recruiting", max_results=5)
+```javascript
+// Using the HTTP API
+const response = await fetch('http://localhost:3000/api/clinical_trials?condition=breast%20cancer&status=recruiting&max_results=5');
+const result = await response.json();
+
+// Or using the MCP tool directly
+const result = await callTool('clinical_trials_search', { condition: "breast cancer", status: "recruiting", max_results: 5 });
 ```
 
 **Example Response:**
@@ -262,7 +288,9 @@ result = await clinical_trials_search(condition="breast cancer", status="recruit
 **Testing:**
 Use the test file to test this tool:
 ```bash
-python -m tests.run_tests --trials
+npm test
+# Or test the HTTP endpoint directly:
+curl "http://localhost:3000/api/clinical_trials?condition=breast%20cancer&status=recruiting"
 ```
 
 ### 5. Medical Terminology/ICD-10 Lookup
@@ -280,10 +308,18 @@ Look up ICD-10 codes by code or description.
 - `max_results`: Maximum number of results to return (optional, default: 10)
 
 **Example Request:**
-```python
-result = await lookup_icd_code(code="E11.9")
-# OR
-result = await lookup_icd_code(description="type 2 diabetes")
+```javascript
+// Using the HTTP API
+const response = await fetch('http://localhost:3000/api/medical_terminology?code=E11.9');
+const result = await response.json();
+// OR
+const response = await fetch('http://localhost:3000/api/medical_terminology?description=type%202%20diabetes');
+const result = await response.json();
+
+// Or using the MCP tool directly
+const result = await callTool('lookup_icd_code', { code: "E11.9" });
+// OR
+const result = await callTool('lookup_icd_code', { description: "type 2 diabetes" });
 ```
 
 **Example Response:**
@@ -308,7 +344,9 @@ result = await lookup_icd_code(description="type 2 diabetes")
 **Testing:**
 Use the test file to test this tool:
 ```bash
-python -m tests.run_tests --icd
+npm test
+# Or test the HTTP endpoint directly:
+curl "http://localhost:3000/api/medical_terminology?code=E11.9"
 ```
 
 ### 6. medRxiv Search

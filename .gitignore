@@ -1,22 +1,16 @@
-# Python
-__pycache__/
-*.py[cod]
-*.class
-*.so
-.Python
-venv/
-ENV/
-env.bak/
-venv.bak/
-*.egg-info/
-.pytest_cache/
-dist/
-build/
-htmlcov/
-.coverage
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.tgz
+.npm
+.eslintcache
 
 # Environment variables and secrets
 .env
+.env.local
+.env.*.local
 *.pem
 *.key
 secrets/
@@ -39,15 +33,25 @@ logs/
 # Docker
 .dockerignore
 
-# Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
 # Operating system files
 .DS_Store
 Thumbs.db
+
+# Build and temporary files
+dist/
+build/
+tmp/
+temp/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
 
 # Sensitive files and private components
 /src/private/

@@ -1,7 +1,7 @@
 # FDA Drug Lookup – Issue #15 Fix Report  
 
 **File:** `docs/fda-tool-fix.md`  
-**Affected module:** `src/tools/fda_tool.py`  
+**Affected module:** `server/fda-tool.js`  
 **Fix version:** `v0.7.0` (branch `fix/fda-response-size-limit`)  
 
 ---
@@ -41,9 +41,9 @@ Because Claude attempted to stream the whole payload back to the user, the conve
 
 ### 3.2 Response Extraction & Sanitisation
 1. **Limit records** `limit=1` (was 3) to cap raw payload size.  
-2. **_extract_key_info()** – pulls only high-value fields:  
+2. **_extractKeyInfo()** – pulls only high-value fields:  
    `brand_names`, `generic_names`, `manufacturer`, `indications`, `dosage`, `warnings`, `contraindications`, `adverse_reactions`, `drug_interactions`, `pregnancy`.
-3. **_sanitize_text()**  
+3. **_sanitizeText()**  
    * Strips HTML tags with regex.  
    * If a string > 5 000 chars **and** contains `<table>/<td>` it is replaced by `[Table content removed due to size]`.  
    * Remaining text truncated to 1 000 chars max.  
