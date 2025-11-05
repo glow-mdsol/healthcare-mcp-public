@@ -2,6 +2,18 @@
 
 This document provides detailed documentation for all tools available in the Healthcare MCP Server.
 
+## Overview
+
+**Total Tools Available:** 18
+
+**Categories:**
+- **Research & Literature** (6): FDA Drug Lookup, PubMed Search, medRxiv Search, NCBI Bookshelf Search, Clinical Trials Search, Get Clinical Trial by NCT ID
+- **Clinical Terminology** (6): Search Clinical Concepts, Get Clinical Concept by CUI, Get Concept Definitions by CUI, Get Related Clinical Concepts by CUI, Get Source Abbreviations, Medical Terminology/ICD-10 Lookup
+- **AI-Powered Analysis** (1): Extract Clinical Trial Concepts (requires MCP sampling)
+- **Health Information** (1): Health Topics
+- **Medical Utilities** (2): Calculate BMI, Extract DICOM Metadata
+- **Monitoring** (2): Get Usage Stats, Get All Usage Stats
+
 ## Current Tools
 
 ### 1. FDA Drug Lookup
@@ -400,6 +412,513 @@ Extract metadata from a DICOM file.
 **Parameters:**
 - `file_path`: Path to the DICOM file (required)
 
+### 10. Search Clinical Concepts (UMLS)
+
+```
+search_clinical_concepts(concept: str, max_results?: number, search_type?: string, version?: string)
+```
+
+**Description:**  
+Search for clinical concepts in the UMLS Metathesaurus, the world's largest collection of biomedical terminology.
+
+**Parameters:**
+- `concept`: Clinical concept to search for (required)
+- `max_results`: Maximum number of results to return (optional, default: 10, max: 1000)
+- `search_type`: Type of search to perform (optional, default: "exact")
+  - `exact`: Exact match
+  - `words`: Word-based search
+  - `leftTruncation`: Left truncation search
+  - `rightTruncation`: Right truncation search  
+  - `normalizedString`: Normalized string search
+  - `normalizedWords`: Normalized word search
+- `version`: UMLS version to search (optional, default: "current")
+
+**Example Request:**
+```javascript
+// Using the MCP tool
+const result = await callTool('search_clinical_concepts', { 
+  concept: "diabetes", 
+  max_results: 5,
+  search_type: "words" 
+});
+```
+
+**Example Response:**
+```json
+{
+  "status": "success",
+  "concept": "diabetes",
+  "searchType": "words",
+  "totalCount": 3792,
+  "returnedCount": 5,
+  "maxRequested": 5,
+  "results": [
+    {
+      "ui": "C0011849",
+      "rootSource": "MTH",
+      "uri": "https://uts-ws.nlm.nih.gov/rest/content/2025AA/CUI/C0011849",
+      "name": "Diabetes Mellitus"
+    },
+    {
+      "ui": "C0011860", 
+      "rootSource": "MTH",
+      "uri": "https://uts-ws.nlm.nih.gov/rest/content/2025AA/CUI/C0011860",
+      "name": "Diabetes Mellitus, Non-Insulin-Dependent"
+    }
+  ]
+}
+```
+
+### 11. Get Clinical Concept by CUI (UMLS)
+
+```
+get_clinical_concept_by_cui(cui: str, version?: string)
+```
+
+**Description:**  
+Fetch detailed information about a clinical concept using its CUI (Concept Unique Identifier) from UMLS.
+
+**Parameters:**
+- `cui`: Concept Unique Identifier (required)
+- `version`: UMLS version to search (optional, default: "current")
+
+**Example Request:**
+```javascript
+// Using the MCP tool
+const result = await callTool('get_clinical_concept_by_cui', { 
+  cui: "C0011847" 
+});
+```
+
+**Example Response:**
+```json
+{
+  "status": "R",
+  "ui": "C0011847",
+  "name": "Diabetes",
+  "dateAdded": "09-30-1990",
+  "majorRevisionDate": "04-29-2021",
+  "classType": "Concept",
+  "suppressible": false,
+  "semanticTypes": [
+    {
+      "name": "Disease or Syndrome",
+      "uri": "https://uts-ws.nlm.nih.gov/rest/semantic-network/2025AA/TUI/T047"
+    }
+  ],
+  "atoms": "https://uts-ws.nlm.nih.gov/rest/content/2025AA/CUI/C0011847/atoms",
+  "definitions": "NONE",
+  "relations": "https://uts-ws.nlm.nih.gov/rest/content/2025AA/CUI/C0011847/relations",
+  "defaultPreferredAtom": "https://uts-ws.nlm.nih.gov/rest/content/2025AA/CUI/C0011847/atoms/preferred",
+  "atomCount": 9,
+  "cvMemberCount": 0,
+  "attributeCount": 0,
+  "relationCount": 17
+}
+```
+
+### 12. Get Clinical Trial by NCT ID
+
+```
+get_clinical_trial_by_nct_id(nct_id: str)
+```
+
+**Description:**  
+Get comprehensive detailed information for a specific clinical trial by its NCT identifier.
+
+**Parameters:**
+- `nct_id`: NCT identifier for the clinical trial (required, format: NCT########)
+
+**Example Request:**
+```javascript
+// Using the HTTP API
+const response = await fetch('http://localhost:3000/api/clinical_trial?nct_id=NCT04793126');
+const result = await response.json();
+
+// Or using the MCP tool
+const result = await callTool('get_clinical_trial_by_nct_id', { 
+  nct_id: "NCT04793126" 
+});
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "nct_id": "NCT04793126",
+    "trial": {
+      "nct_id": "NCT04793126",
+      "title": "Efficacy of GLP-1 Receptor Agonist in Type 2 Diabetes",
+      "official_title": "A Phase 3 Randomized Study...",
+      "status": "RECRUITING",
+      "phase": ["PHASE3"],
+      "study_type": "INTERVENTIONAL",
+      "enrollment": 500,
+      "conditions": ["Type 2 Diabetes Mellitus"],
+      "keywords": ["diabetes", "GLP-1"],
+      "sponsor": "National Institute of Health",
+      "collaborators": ["University Hospital"],
+      "brief_summary": "This study aims to evaluate...",
+      "detailed_description": "Detailed study protocol...",
+      "primary_outcomes": [{
+        "measure": "HbA1c reduction",
+        "description": "Change from baseline",
+        "time_frame": "12 weeks"
+      }],
+      "secondary_outcomes": [],
+      "interventions": [{
+        "type": "DRUG",
+        "name": "GLP-1 Agonist",
+        "description": "Once weekly injection"
+      }],
+      "locations": [{
+        "facility": "University Medical Center",
+        "city": "Boston",
+        "state": "MA",
+        "country": "United States",
+        "zip": "02115",
+        "latitude": 42.3601,
+        "longitude": -71.0589,
+        "status": "RECRUITING"
+      }],
+      "start_date": "2024-01-15",
+      "completion_date": "2025-12-31",
+      "last_update": "2024-10-20",
+      "url": "https://clinicaltrials.gov/study/NCT04793126",
+      "eligibility": {
+        "gender": "ALL",
+        "min_age": "18 Years",
+        "max_age": "75 Years",
+        "healthy_volunteers": "No",
+        "inclusion_criteria": [
+          "Diagnosed with Type 2 Diabetes Mellitus",
+          "HbA1c between 7.0% and 10.0%",
+          "Age 18-75 years"
+        ],
+        "exclusion_criteria": [
+          "Type 1 Diabetes",
+          "Severe renal impairment",
+          "Pregnancy or breastfeeding"
+        ]
+      }
+    }
+  }
+}
+```
+
+### 13. Extract Clinical Trial Concepts
+
+```
+extract_clinical_trial_concepts(nct_id: str)
+```
+
+**Description:**  
+Extract and map medical concepts from clinical trial eligibility criteria using AI-powered analysis and UMLS standardized vocabularies. This tool uses MCP sampling to leverage the client's LLM for intelligent concept extraction.
+
+**Parameters:**
+- `nct_id`: NCT identifier for the clinical trial (required, format: NCT########)
+
+**Requirements:**
+- MCP protocol with sampling capability
+- **Not available via HTTP API** (requires bidirectional MCP communication)
+
+**Example Request:**
+```javascript
+// Only available via MCP client with sampling support
+const result = await callTool('extract_clinical_trial_concepts', { 
+  nct_id: "NCT04793126" 
+});
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "nct_id": "NCT04793126",
+    "trial_title": "Efficacy of GLP-1 Receptor Agonist in Type 2 Diabetes",
+    "study_conditions": ["Type 2 Diabetes Mellitus"],
+    "extraction_summary": {
+      "total_concepts": 18,
+      "by_category": {
+        "Conditions/Diseases": 5,
+        "Procedures/Tests": 4,
+        "Medications": 3,
+        "Biomarkers": 4,
+        "Demographics": 2
+      },
+      "mapped_to_umls": 16
+    },
+    "extracted_concepts": [
+      {
+        "original_concept": "Type 2 Diabetes Mellitus",
+        "category": "Conditions/Diseases",
+        "context": "inclusion",
+        "specifics": "HbA1c between 7.0% and 10.0%",
+        "umls_mapping": {
+          "found": true,
+          "cui": "C0011860",
+          "preferred_term": "Diabetes Mellitus, Non-Insulin-Dependent",
+          "semantic_types": ["Disease or Syndrome"],
+          "score": 0.98,
+          "definitions": [
+            {
+              "source": "NCI",
+              "text": "A type of diabetes mellitus characterized by..."
+            }
+          ]
+        }
+      },
+      {
+        "original_concept": "HbA1c",
+        "category": "Biomarkers",
+        "context": "inclusion",
+        "specifics": "7.0% - 10.0% range",
+        "umls_mapping": {
+          "found": true,
+          "cui": "C0019018",
+          "preferred_term": "Hemoglobin A, Glycosylated",
+          "semantic_types": ["Laboratory Procedure"]
+        }
+      }
+    ],
+    "eligibility_criteria": {
+      "inclusion": ["Diagnosed with Type 2 Diabetes Mellitus", "..."],
+      "exclusion": ["Type 1 Diabetes", "..."]
+    }
+  }
+}
+```
+
+**Concept Categories:**
+- Conditions/Diseases: Diagnoses, symptoms, disorders
+- Procedures/Tests: Lab tests, imaging, diagnostic procedures
+- Medications: Drugs, therapies, treatments
+- Biomarkers: Lab values, genetic markers
+- Demographics: Age, gender, population characteristics
+- Temporal: Time periods, durations, constraints
+
+**See Also:** [Concept Extraction Tool Documentation](docs/concept-extraction-tool.md)
+
+### 14. Get Concept Definitions by CUI
+
+```
+get_concept_definitions_by_cui(cui: str, version?: str, sources?: array, max_results?: int, page_number?: int)
+```
+
+**Description:**  
+Get detailed definitions for a clinical concept from multiple UMLS source vocabularies.
+
+**Parameters:**
+- `cui`: Concept Unique Identifier (required)
+- `version`: UMLS version (optional, default: "current")
+- `sources`: Filter by specific source vocabularies (optional, e.g., ["SNOMEDCT_US", "ICD10CM"])
+- `max_results`: Results per page (optional, default: 25, max: 1000)
+- `page_number`: Page number for pagination (optional, default: 1)
+
+**Example Request:**
+```javascript
+// Using the MCP tool
+const result = await callTool('get_concept_definitions_by_cui', { 
+  cui: "C0011860",
+  sources: ["NCI", "SNOMEDCT_US"],
+  max_results: 10
+});
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "cui": "C0011860",
+    "concept_name": "Diabetes Mellitus, Non-Insulin-Dependent",
+    "total_definitions": 5,
+    "page": 1,
+    "page_size": 10,
+    "definitions": [
+      {
+        "rootSource": "NCI",
+        "value": "A type of diabetes mellitus that is characterized by insulin resistance or desensitization and increased blood glucose levels.",
+        "sourceOriginated": true
+      },
+      {
+        "rootSource": "SNOMEDCT_US",
+        "value": "Diabetes mellitus without complication",
+        "sourceOriginated": false
+      }
+    ]
+  }
+}
+```
+
+### 15. Get Related Clinical Concepts by CUI
+
+```
+get_related_clinical_concept_by_cui(cui: str, version?: str, sources?: array, max_results?: int, page_number?: int)
+```
+
+**Description:**  
+Get related clinical concepts and their relationships from UMLS.
+
+**Parameters:**
+- `cui`: Concept Unique Identifier (required)
+- `version`: UMLS version (optional, default: "current")
+- `sources`: Filter by specific source vocabularies (optional)
+- `max_results`: Results per page (optional, default: 25, max: 1000)
+- `page_number`: Page number for pagination (optional, default: 1)
+
+**Example Request:**
+```javascript
+// Using the MCP tool
+const result = await callTool('get_related_clinical_concept_by_cui', { 
+  cui: "C0011860",
+  max_results: 5
+});
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "cui": "C0011860",
+    "concept_name": "Diabetes Mellitus, Non-Insulin-Dependent",
+    "total_relations": 127,
+    "page": 1,
+    "page_size": 5,
+    "relations": [
+      {
+        "relationLabel": "RB",
+        "relatedId": "C0011854",
+        "relatedIdName": "Diabetes Mellitus, Type 1",
+        "additionalRelationLabel": "broader_than",
+        "rootSource": "SNOMEDCT_US"
+      },
+      {
+        "relationLabel": "RN",
+        "relatedId": "C0342276",
+        "relatedIdName": "Maturity-Onset Diabetes of Young",
+        "additionalRelationLabel": "narrower_than",
+        "rootSource": "SNOMEDCT_US"
+      }
+    ]
+  }
+}
+```
+
+### 16. Get Source Abbreviations
+
+```
+get_source_abbreviations()
+```
+
+**Description:**  
+Get a list of all available UMLS source vocabulary abbreviations and their full names.
+
+**Parameters:** None
+
+**Example Request:**
+```javascript
+// Using the MCP tool
+const result = await callTool('get_source_abbreviations', {});
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "total_sources": 215,
+    "sources": [
+      {
+        "abbreviation": "SNOMEDCT_US",
+        "name": "SNOMED Clinical Terms, US Edition",
+        "family": "SNOMEDCT"
+      },
+      {
+        "abbreviation": "ICD10CM",
+        "name": "International Classification of Diseases, 10th Edition, Clinical Modification",
+        "family": "ICD10"
+      },
+      {
+        "abbreviation": "NCI",
+        "name": "NCI Thesaurus",
+        "family": "NCI"
+      }
+    ]
+  }
+}
+```
+
+### 17. Get Usage Stats
+
+```
+get_usage_stats()
+```
+
+**Description:**  
+Get usage statistics for the current session.
+
+**Parameters:** None
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "session_id": "abc-123-def",
+    "tools_called": {
+      "fda_drug_lookup": 5,
+      "pubmed_search": 3,
+      "search_clinical_concepts": 10
+    },
+    "total_calls": 18,
+    "session_start": "2024-11-05T10:00:00Z"
+  }
+}
+```
+
+### 18. Get All Usage Stats
+
+```
+get_all_usage_stats()
+```
+
+**Description:**  
+Get overall usage statistics across all sessions.
+
+**Parameters:** None
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "total_sessions": 42,
+    "total_calls": 1250,
+    "most_used_tools": [
+      {
+        "tool": "search_clinical_concepts",
+        "count": 450
+      },
+      {
+        "tool": "pubmed_search",
+        "count": 320
+      }
+    ],
+    "sessions": [
+      {
+        "session_id": "session-1",
+        "total_calls": 25,
+        "last_active": "2024-11-05T15:30:00Z"
+      }
+    ]
+  }
+}
+```
+
 ## Usage Limits and Tiers
 
 The Healthcare MCP Server implements usage limits based on subscription tiers:
@@ -451,10 +970,28 @@ All tools follow a consistent error handling pattern:
 
 ## Authentication
 
+### Server API Keys
+
 For HTTP/SSE transport, include your API key in the request headers:
 
 ```
 X-API-Key: your_api_key_here
 ```
 
-For direct Cline connections, the API key is optional as the server will create a session-based ID.
+For direct MCP client connections, the API key is optional as the server will create a session-based ID.
+
+### External API Keys (Environment Variables)
+
+Some tools require external API keys configured as environment variables:
+
+#### Required
+- **UMLS_API_KEY**: Required for all UMLS/clinical terminology tools
+  - Tools requiring this: `search_clinical_concepts`, `get_clinical_concept_by_cui`, `get_concept_definitions_by_cui`, `get_related_clinical_concept_by_cui`, `get_source_abbreviations`, `extract_clinical_trial_concepts`
+  - Get your key at: [UMLS User Authentication](https://uts.nlm.nih.gov/uts/signup-login)
+
+#### Optional (Enhances Rate Limits)
+- **FDA_API_KEY**: Improves FDA drug lookup rate limits
+  - Get your key at: [FDA API Key Request](https://open.fda.gov/apis/authentication/)
+  
+- **PUBMED_API_KEY**: Enhances PubMed search performance
+  - Get your key at: [NCBI API Keys](https://www.ncbi.nlm.nih.gov/account/settings/)

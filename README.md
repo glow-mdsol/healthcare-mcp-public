@@ -16,18 +16,25 @@ This repository includes a packaged DXT (Desktop Extension) file for easy instal
 - **FDA Drug Information**: Search and retrieve comprehensive drug information from the FDA database (improved response parsing)
 - **PubMed Research**: Search medical literature from PubMed's database of scientific articles
 - **Health Topics**: Access evidence-based health information from Health.gov (updated to API v4)
-- **Clinical Trials**: Search for ongoing and completed clinical trials (updated API parameters)
+- **Clinical Trials**: Search for ongoing and completed clinical trials with detailed information retrieval
+- **AI-Powered Concept Extraction**: Extract and map medical concepts from clinical trial eligibility criteria using LLM and UMLS
+- **UMLS Clinical Terminology**: Search, retrieve, and explore clinical concepts from the UMLS Metathesaurus
+  - Search concepts by term with fuzzy matching
+  - Get concept definitions from multiple sources
+  - Explore related concepts and relationships
+  - Access source vocabulary abbreviations
 - **Medical Terminology**: Look up ICD-10 codes and medical terminology definitions
 - **medRxiv Search**: Search for pre-print articles on medRxiv
 - **Medical Calculator**: Calculate Body Mass Index (BMI)
 - **NCBI Bookshelf Search**: Search the NCBI Bookshelf for biomedical books and documents
-- **DICOM Metadata Extraction**: Extract metadata from a DICOM file
+- **DICOM Metadata Extraction**: Extract metadata from DICOM medical imaging files
 - **Caching**: Efficient caching system with connection pooling to reduce API calls and improve performance
 - **Usage Tracking**: Anonymous usage tracking to monitor API usage
 - **Error Handling**: Robust error handling and logging
-- **Multiple Interfaces**: Support for both stdio (for CLI) and HTTP/SSE interfaces
+- **Multiple Interfaces**: Support for both stdio (for MCP clients) and HTTP/SSE interfaces
 - **API Documentation**: Interactive API documentation with Swagger UI
 - **Comprehensive Testing**: Extensive test suite with Node.js testing and API verification
+- **MCP Sampling Support**: AI-powered tools using client LLM integration
 
 ## Installation
 
@@ -82,6 +89,38 @@ npx -y @smithery/cli install @Cicatriiz/healthcare-mcp-public --client claude
    ```bash
    npm start
    ```
+
+## Configuration
+
+### API Keys
+
+The server supports several optional API keys for enhanced functionality:
+
+#### Required for UMLS Tools
+- **UMLS_API_KEY**: Required for clinical concept searches, definitions, and relationships
+  - Get your key at [UMLS User Authentication](https://uts.nlm.nih.gov/uts/signup-login)
+  - Needed for: `search_clinical_concepts`, `get_clinical_concept_by_cui`, `get_concept_definitions_by_cui`, `get_related_clinical_concept_by_cui`, `extract_clinical_trial_concepts`
+
+#### Optional (Improves Rate Limits)
+- **FDA_API_KEY**: Enhances FDA drug lookup with higher rate limits
+  - Get your key at [FDA API Key Request](https://open.fda.gov/apis/authentication/)
+  
+- **PUBMED_API_KEY**: Improves PubMed search performance
+  - Get your key at [NCBI API Keys](https://www.ncbi.nlm.nih.gov/account/settings/)
+
+### Environment Variables
+
+```bash
+# API Keys
+UMLS_API_KEY=your_umls_api_key_here        # Required for UMLS tools
+FDA_API_KEY=your_fda_api_key_here          # Optional
+PUBMED_API_KEY=your_pubmed_api_key_here    # Optional
+
+# Server Configuration
+PORT=3000                                   # Server port (default: 3000)
+NODE_ENV=production                         # Environment (development/production)
+CACHE_TTL=86400                            # Cache time-to-live in seconds
+```
 
 ## Usage
 
@@ -368,6 +407,32 @@ clinical_trials_search(condition, status = "recruiting", max_results = 10)
 - `status`: Trial status (recruiting, completed, active, not_recruiting, or all)
 - `max_results`: Maximum number of results to return
 
+#### Get Clinical Trial by NCT ID
+
+```javascript
+get_clinical_trial_by_nct_id(nct_id)
+```
+
+**Parameters:**
+- `nct_id`: NCT identifier for the clinical trial (e.g., NCT12345678)
+
+Returns comprehensive details including outcomes, interventions, all locations, and parsed eligibility criteria.
+
+#### Extract Clinical Trial Concepts
+
+```javascript
+extract_clinical_trial_concepts(nct_id)
+```
+
+**Parameters:**
+- `nct_id`: NCT identifier for the clinical trial (e.g., NCT12345678)
+
+Uses AI-powered extraction to identify medical concepts from eligibility criteria and maps them to UMLS standardized vocabularies. Extracts conditions, procedures, medications, biomarkers, demographics, and temporal constraints with automatic UMLS CUI mapping and definitions.
+
+**Note:** This tool requires MCP protocol with sampling capability. Not available via HTTP API.
+
+See [Concept Extraction Tool Documentation](docs/concept-extraction-tool.md) for detailed usage guide.
+
 #### ICD-10 Code Lookup
 
 ```javascript
@@ -418,6 +483,85 @@ extract_dicom_metadata(file_path)
 **Parameters:**
 - `file_path`: Path to the DICOM file
 
+#### Search Clinical Concepts (UMLS)
+
+```javascript
+search_clinical_concepts(concept, version = "current", search_type = "words", max_results = 25, sources = [])
+```
+
+**Parameters:**
+- `concept`: Medical term or concept to search for
+- `version`: UMLS version (default: "current")
+- `search_type`: Search algorithm ("exact", "words", "leftTruncation", "rightTruncation", "approximate", "normalizedString")
+- `max_results`: Maximum number of results to return
+- `sources`: Filter by specific source vocabularies (e.g., ["SNOMEDCT_US", "ICD10CM"])
+
+#### Get Clinical Concept by CUI
+
+```javascript
+get_clinical_concept_by_cui(cui, version = "current")
+```
+
+**Parameters:**
+- `cui`: Concept Unique Identifier from UMLS
+- `version`: UMLS version (default: "current")
+
+Returns detailed information about a specific clinical concept.
+
+#### Get Concept Definitions by CUI
+
+```javascript
+get_concept_definitions_by_cui(cui, version = "current", sources = [], max_results = 25, page_number = 1)
+```
+
+**Parameters:**
+- `cui`: Concept Unique Identifier from UMLS
+- `version`: UMLS version (default: "current")
+- `sources`: Filter by specific source vocabularies
+- `max_results`: Results per page (max: 1000)
+- `page_number`: Page number for pagination
+
+Returns definitions from multiple authoritative sources.
+
+#### Get Related Clinical Concepts by CUI
+
+```javascript
+get_related_clinical_concept_by_cui(cui, version = "current", sources = [], max_results = 25, page_number = 1)
+```
+
+**Parameters:**
+- `cui`: Concept Unique Identifier from UMLS
+- `version`: UMLS version (default: "current")
+- `sources`: Filter by specific source vocabularies
+- `max_results`: Results per page (max: 1000)
+- `page_number`: Page number for pagination
+
+Returns related concepts and relationships.
+
+#### Get Source Abbreviations
+
+```javascript
+get_source_abbreviations()
+```
+
+Returns a list of all available UMLS source vocabulary abbreviations.
+
+#### Get Usage Stats
+
+```javascript
+get_usage_stats()
+```
+
+Returns current session usage statistics.
+
+#### Get All Usage Stats
+
+```javascript
+get_all_usage_stats()
+```
+
+Returns overall usage statistics for all sessions.
+
 ## Data Sources
 
 This MCP server utilizes several publicly available healthcare APIs:
@@ -425,6 +569,7 @@ This MCP server utilizes several publicly available healthcare APIs:
 - [FDA OpenFDA API](https://open.fda.gov/apis/)
 - [PubMed E-utilities API](https://www.ncbi.nlm.nih.gov/books/NBK25500/)
 - [Health.gov API](https://health.gov/our-work/national-health-initiatives/health-literacy/consumer-health-content/free-web-content/apis-developers)
+- [UMLS Metathesaurus API](https://uts.nlm.nih.gov/uts/)
 - [ClinicalTrials.gov API](https://clinicaltrials.gov/data-api/about-api)
 - [NLM Clinical Table Search Service for ICD-10-CM](https://clinicaltables.nlm.nih.gov/apidoc/icd10cm/v3/doc.html)
 
