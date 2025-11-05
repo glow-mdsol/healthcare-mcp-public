@@ -20,6 +20,8 @@ import { MedicalCalculatorTool } from './medical-calculator-tool.js';
 import { NcbiBookshelfTool } from './ncbi-bookshelf-tool.js';
 import { DicomTool } from './dicom-tool.js';
 import { UsageService } from './usage-service.js';
+import { ClinicalConceptsTool } from './umls-catalog-search.js';
+import { ClinicalTrialsConceptExtractorTool } from './clinical-trials-concept-extractor-tool.js';
 
 // Initialize services
 const cacheService = new CacheService(parseInt(process.env.CACHE_TTL) || 86400);
@@ -35,6 +37,12 @@ const medrxivTool = new MedRxivTool(cacheService);
 const medicalCalculatorTool = new MedicalCalculatorTool(cacheService);
 const ncbiBookshelfTool = new NcbiBookshelfTool(cacheService);
 const dicomTool = new DicomTool(cacheService);
+const clinicalConceptsTool = new ClinicalConceptsTool(cacheService);
+const conceptExtractorTool = new ClinicalTrialsConceptExtractorTool(
+  cacheService,
+  clinicalTrialsTool,
+  medicalTerminologyTool
+);
 
 // Generate a unique session ID for this connection
 const sessionId = randomUUID();
@@ -48,6 +56,7 @@ const server = new Server(
   {
     capabilities: {
       tools: {},
+      sampling: {},
     },
   },
 );
@@ -229,6 +238,34 @@ server.setRequestHandler(ListToolsRequestSchema, async (request) => {
         },
       },
       {
+        name: "get_clinical_trial_by_nct_id",
+        description: "Get detailed information for a specific clinical trial by its NCT ID",
+        inputSchema: {
+          type: "object",
+          properties: {
+            nct_id: {
+              type: "string",
+              description: "NCT identifier for the clinical trial (e.g., NCT12345678)",
+            },
+          },
+          required: ["nct_id"],
+        },
+      },
+      {
+        name: "extract_clinical_trial_concepts",
+        description: "Extract and map medical concepts from clinical trial eligibility criteria to UMLS standardized vocabularies. Uses LLM to identify conditions, procedures, medications, biomarkers, and other medical concepts, then maps them to UMLS CUIs with definitions.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            nct_id: {
+              type: "string",
+              description: "NCT identifier for the clinical trial (e.g., NCT12345678)",
+            },
+          },
+          required: ["nct_id"],
+        },
+      },
+      {
         name: "lookup_icd_code",
         description: "Look up ICD-10 codes by code or description",
         inputSchema: {
@@ -268,6 +305,147 @@ server.setRequestHandler(ListToolsRequestSchema, async (request) => {
           properties: {},
         },
       },
+      {
+        name: "search_clinical_concepts",
+        description: "Search for clinical concepts in the UMLS Metathesaurus",
+        inputSchema: {
+          type: "object",
+          properties: {
+            concept: {
+              type: "string",
+              description: "Clinical concept to search for",
+            },
+            version: {
+              type: "string",
+              description: "UMLS version to search (default: current)",
+              default: "current",
+            },
+            search_type: {
+              type: "string",
+              description: "Type of search to perform",
+              enum: ["exact", "words", "leftTruncation", "rightTruncation", "normalizedString", "normalizedWords"],
+              default: "exact",
+            },
+            max_results: {
+              type: "number",
+              description: "Maximum number of results to return",
+              default: 10,
+              minimum: 1,
+              maximum: 1000,
+            },
+            sources: {
+              type: "array",
+              items: {
+                type: "string"
+              },
+              description: "Filter by specific source vocabularies (e.g., ['ICD10CM', 'SNOMEDCT_US'])",
+              default: []
+            }
+          },
+          required: ["concept"],
+        },
+      },
+      {
+        name: "get_clinical_concept_by_cui",
+        description: "Fetch clinical concepts by their CUI (Concept Unique Identifier) from UMLS",
+        inputSchema: {
+          type: "object",
+          properties: {
+            cui: {
+              type: "string",
+              description: "Concept Unique Identifier (CUI)",
+            },
+            version: {
+              type: "string",
+              description: "UMLS version to search (default: current)",
+              default: "current",
+            },
+          },
+          required: ["cui"],
+        },
+      },
+      {
+        name: "get_concept_definitions_by_cui",
+        description: "Fetch concept definitions for a given CUI (Concept Unique Identifier) from UMLS with pagination support",
+        inputSchema: {
+          type: "object",
+          properties: {
+            cui: {
+              type: "string",
+              description: "Concept Unique Identifier (CUI)",
+            },
+            version: {
+              type: "string",
+              description: "UMLS version to search (default: current)",
+              default: "current",
+            },
+            sources: {
+              type: "array",
+              items: {
+                type: "string"
+              },
+              description: "Filter by specific source vocabularies (e.g., ['MSH', 'NCI', 'SNOMEDCT_US'])",
+              default: []
+            },
+            max_results: {
+              type: "number",
+              description: "Maximum number of results to return per page (default: 25, max: 1000)",
+              default: 25,
+            },
+            page_number: {
+              type: "number", 
+              description: "Page number to retrieve (default: 1)",
+              default: 1,
+            },
+          },
+          required: ["cui"],
+        },
+      },
+      {
+        name: "get_related_clinical_concept_by_cui",
+        description: "Fetch related clinical concepts by their CUI (Concept Unique Identifier) from UMLS with pagination support",
+        inputSchema: {
+          type: "object",
+          properties: {
+            cui: {
+              type: "string",
+              description: "Concept Unique Identifier (CUI)",
+            },
+            version: {
+              type: "string",
+              description: "UMLS version to search (default: current)",
+              default: "current",
+            },
+            sources: {
+              type: "array",
+              items: {
+                type: "string"
+              },
+              description: "Filter by specific source vocabularies (e.g., ['ICD10CM', 'SNOMEDCT_US'])",
+              default: []
+            },
+            max_results: {
+              type: "number",
+              description: "Maximum number of results to return per page (default: 25, max: 1000)",
+              default: 25,
+            },
+            page_number: {
+              type: "number", 
+              description: "Page number to retrieve (default: 1)",
+              default: 1,
+            },
+          },
+          required: ["cui"],
+        },
+      },
+      {
+        name: "get_source_abbreviations",
+        description: "Fetch source abbreviations from UMLS",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },  
     ],
   };
 });
@@ -315,6 +493,29 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         result = await clinicalTrialsTool.searchTrials(args.condition, args.status, args.max_results);
         break;
 
+      case "get_clinical_trial_by_nct_id":
+        result = await clinicalTrialsTool.getTrialByNctId(args.nct_id);
+        break;
+
+      case "extract_clinical_trial_concepts":
+        // Create sampling callback that uses the server's sampling capability
+        const samplingCallback = async (samplingParams) => {
+          try {
+            const samplingResult = await server.requestSampling(
+              samplingParams,
+              request.meta
+            );
+            return {
+              content: samplingResult.content
+            };
+          } catch (error) {
+            throw new Error(`Sampling failed: ${error.message}`);
+          }
+        };
+        
+        result = await conceptExtractorTool.extractConcepts(args.nct_id, samplingCallback);
+        break;
+
       case "lookup_icd_code":
         result = await medicalTerminologyTool.lookupICDCode(args.code, args.description, args.max_results);
         break;
@@ -325,6 +526,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "get_all_usage_stats":
         result = usageService.getAllUsageStats();
+        break;
+
+      case "search_clinical_concepts":
+        result = await clinicalConceptsTool.searchConcept(args.concept, args.version, args.search_type, args.max_results);
+        break;
+
+      case "get_clinical_concept_by_cui":
+        result = await clinicalConceptsTool.getConceptById(args.cui, args.version);
+        break;
+
+      case "get_concept_definitions_by_cui":
+        result = await clinicalConceptsTool.getConceptDefinitions(args.cui, args.version, args.sources, args.max_results, args.page_number);
+        break;
+
+      case "get_related_clinical_concept_by_cui":
+        result = await clinicalConceptsTool.getRelatedConcepts(args.cui, args.version, args.sources, args.max_results, args.page_number);
+        break;
+
+      case "get_source_abbreviations":
+        result = await clinicalConceptsTool.getSourceAbbreviations();
         break;
 
       default:

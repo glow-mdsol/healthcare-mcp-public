@@ -15,6 +15,8 @@ import { MedicalCalculatorTool } from './medical-calculator-tool.js';
 import { NcbiBookshelfTool } from './ncbi-bookshelf-tool.js';
 import { DicomTool } from './dicom-tool.js';
 import { UsageService } from './usage-service.js';
+import { ClinicalConceptsTool } from './umls-catalog-search.js';
+import { ClinicalTrialsConceptExtractorTool } from './clinical-trials-concept-extractor-tool.js';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const sessionId = randomUUID();
@@ -31,6 +33,12 @@ const medrxivTool = new MedRxivTool(cacheService);
 const medicalCalculatorTool = new MedicalCalculatorTool(cacheService);
 const ncbiBookshelfTool = new NcbiBookshelfTool(cacheService);
 const dicomTool = new DicomTool(cacheService);
+const clinicalConceptsTool = new ClinicalConceptsTool(cacheService);
+const conceptExtractorTool = new ClinicalTrialsConceptExtractorTool(
+  cacheService,
+  clinicalTrialsTool,
+  medicalTerminologyTool
+);
 
 function writeJson(res, statusCode, body) {
   res.statusCode = statusCode;
@@ -62,8 +70,27 @@ async function handleCallTool(name, args) {
       return healthTopicsTool.getHealthTopics(args.topic, args.language);
     case 'clinical_trials_search':
       return clinicalTrialsTool.searchTrials(args.condition, args.status, args.max_results);
+    case 'get_clinical_trial_by_nct_id':
+      return clinicalTrialsTool.getTrialByNctId(args.nct_id);
+    case 'extract_clinical_trial_concepts':
+      // Note: LLM sampling is not available via HTTP API
+      // This tool requires MCP protocol with sampling capability
+      return {
+        success: false,
+        error: 'extract_clinical_trial_concepts requires MCP protocol with sampling capability. Please use the MCP client (stdio) to access this tool.'
+      };
     case 'lookup_icd_code':
       return medicalTerminologyTool.lookupICDCode(args.code, args.description, args.max_results);
+    case 'search_clinical_concepts':
+      return clinicalConceptsTool.searchConcept(args.concept, args.version, args.search_type, args.max_results, args.sources);
+    case 'get_clinical_concept_by_cui':
+      return clinicalConceptsTool.getConceptById(args.cui, args.version);
+    case 'get_concept_definitions_by_cui':
+      return clinicalConceptsTool.getConceptDefinitions(args.cui, args.version, args.sources, args.max_results, args.page_number);
+    case 'get_related_clinical_concept_by_cui':
+      return clinicalConceptsTool.getRelatedConcepts(args.cui, args.version, args.sources, args.max_results, args.page_number);
+    case 'get_source_abbreviations':
+      return clinicalConceptsTool.getSourceAbbreviations();
     case 'get_usage_stats':
       return usageService.getSessionUsage(sessionId);
     case 'get_all_usage_stats':
@@ -133,6 +160,36 @@ const server = http.createServer(async (req, res) => {
       const description = url.searchParams.get('description') || '';
       const maxResults = url.searchParams.get('max_results') || 10;
       const result = await medicalTerminologyTool.lookupICDCode(code, description, maxResults);
+      return writeJson(res, 200, result);
+    }
+
+    if (req.method === 'GET' && pathname === '/api/clinical_concepts') {
+      const concept = url.searchParams.get('concept') || '';
+      const version = url.searchParams.get('version') || 'current';
+      const searchType = url.searchParams.get('search_type') || 'exact';
+      const maxResults = url.searchParams.get('max_results') || 10;
+      const sourcesParam = url.searchParams.get('sources') || '';
+      const sources = sourcesParam ? sourcesParam.split(',').map(s => s.trim()) : [];
+      const result = await clinicalConceptsTool.searchConcept(concept, version, searchType, maxResults, sources);
+      return writeJson(res, 200, result);
+    }
+
+    if (req.method === 'GET' && pathname === '/api/clinical_concept') {
+      const cui = url.searchParams.get('cui') || '';
+      const version = url.searchParams.get('version') || 'current';
+      const result = await clinicalConceptsTool.getConceptById(cui, version);
+      return writeJson(res, 200, result);
+    }
+
+    if (req.method === 'GET' && pathname === '/api/clinical_concept_relations') {
+      const cui = url.searchParams.get('cui') || '';
+      const version = url.searchParams.get('version') || 'current';
+      const result = await clinicalConceptsTool.getConceptRelations(cui, version);
+      return writeJson(res, 200, result);
+    }
+
+    if (req.method === 'GET' && pathname === '/api/source_abbreviations') {
+      const result = await clinicalConceptsTool.getSourceAbbreviations();
       return writeJson(res, 200, result);
     }
 
