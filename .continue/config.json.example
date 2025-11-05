@@ -1,0 +1,35 @@
+{
+  "models": [
+    {
+      "title": "Ollama Llama 3.1",
+      "provider": "ollama",
+      "model": "llama3.1",
+      "apiBase": "http://localhost:11434"
+    }
+  ],
+  "experimental": {
+    "modelContextProtocolServers": [
+      {
+        "name": "healthcare-mcp",
+        "transport": {
+          "type": "stdio",
+          "command": "docker",
+          "args": [
+            "run",
+            "-i",
+            "--rm",
+            "--network",
+            "host",
+            "healthcare-mcp-public-healthcare-mcp:latest"
+          ]
+        },
+        "env": {
+          "UMLS_API_KEY": "your_umls_api_key_here",
+          "FDA_API_KEY": "your_fda_api_key_here",
+          "PUBMED_API_KEY": "your_pubmed_api_key_here",
+          "CACHE_TTL": "86400"
+        }
+      }
+    ]
+  }
+}

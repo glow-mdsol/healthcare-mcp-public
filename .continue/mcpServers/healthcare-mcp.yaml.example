@@ -1,0 +1,17 @@
+name: Healthcare MCP Server
+version: 0.1.0
+mcpServers:
+  - name: healthcare-mcp
+    command: docker
+    args:
+      - run
+      - -i
+      - --rm
+      - --network
+      - host
+      - healthcare-mcp-public-healthcare-mcp:latest
+    env:
+      UMLS_API_KEY: "your_umls_api_key_here"
+      FDA_API_KEY: "your_fda_api_key_here"
+      PUBMED_API_KEY: "your_pubmed_api_key_here"
+      CACHE_TTL: "86400"
