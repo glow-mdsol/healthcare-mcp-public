@@ -23,6 +23,10 @@ COPY . .
 # Create data directory for database
 RUN mkdir -p /app/data
 
+# Copy and set up entrypoint
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Set environment variables
 ENV NODE_ENV=production
 ENV DATA_DIR=/app/data
@@ -36,5 +40,9 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
   CMD curl -f http://localhost:3000/health || exit 1
 
-# Command to run the application in HTTP mode
-CMD ["npm", "run", "server:http"]
+# Use entrypoint to handle different modes
+ENTRYPOINT ["docker-entrypoint.sh"]
+
+# Default to stdio mode (for MCP clients like Continue)
+# To run HTTP server, use: docker run ... healthcare-mcp http
+CMD ["stdio"]
