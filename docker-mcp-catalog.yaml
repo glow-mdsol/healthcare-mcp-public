@@ -1,0 +1,324 @@
+apiVersion: v1
+kind: MCPCatalog
+metadata:
+  name: healthcare-mcp-docker-catalog
+  version: "2.1.1"
+  description: "Docker-based MCP catalog for Healthcare MCP Server"
+  author: "Cicatriiz"
+  license: "MIT"
+  created: "2025-10-03"
+  repository: "https://github.com/cicatriiz/healthcare-mcp-public"
+
+spec:
+  servers:
+    - name: healthcare-mcp
+      description: "Healthcare MCP Server - Comprehensive medical information access via Docker"
+      version: "2.1.1"
+      
+      # Docker Configuration
+      docker:
+        image: "healthcare-mcp:latest"
+        build:
+          context: "."
+          dockerfile: "Dockerfile"
+        compose_file: "docker-compose.yml"
+        
+        # Container Configuration
+        container:
+          name: "healthcare-mcp-server"
+          ports:
+            - "3000:3000"
+          restart_policy: "unless-stopped"
+          
+          # Resource Limits
+          resources:
+            limits:
+              cpus: "1"
+              memory: "1G"
+            reservations:
+              cpus: "0.5"
+              memory: "512M"
+              
+          # Health Check
+          healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+            interval: "30s"
+            timeout: "10s"
+            retries: 3
+            start_period: "15s"
+        
+        # Environment Configuration
+        environment:
+          required:
+            - name: "UMLS_API_KEY"
+              description: "UMLS Metathesaurus API key for clinical concept searches"
+              type: "string"
+              secret: true
+          optional:
+            - name: "FDA_API_KEY"
+              description: "FDA API key for enhanced drug information access"
+              type: "string"
+              default: ""
+              secret: true
+            - name: "PUBMED_API_KEY"
+              description: "PubMed API key for research literature access"
+              type: "string"
+              default: ""
+              secret: true
+            - name: "NODE_ENV"
+              description: "Node.js environment"
+              type: "string"
+              default: "production"
+            - name: "PORT"
+              description: "Server port"
+              type: "integer"
+              default: 3000
+            - name: "HOST"
+              description: "Server host"
+              type: "string"
+              default: "0.0.0.0"
+            - name: "CACHE_TTL"
+              description: "Cache time-to-live in seconds"
+              type: "integer"
+              default: 86400
+        
+        # Volume Configuration
+        volumes:
+          - name: "data"
+            host_path: "./data"
+            container_path: "/app/data"
+            description: "Persistent data storage for caching and logs"
+
+      # MCP Protocol Configuration
+      protocol:
+        type: "http"
+        transport: "sse"
+        endpoint: "http://localhost:3000"
+        
+        # Alternative stdio configuration
+        stdio:
+          command: "docker"
+          args: 
+            - "exec"
+            - "-i"
+            - "healthcare-mcp-server"
+            - "node"
+            - "server/index.js"
+
+      # Capabilities
+      capabilities:
+        sampling: true
+        tools:
+          - name: "calculate_bmi"
+            description: "Calculate Body Mass Index (BMI)"
+            category: "medical_calculator"
+            
+          - name: "clinical_trials_search"
+            description: "Search for clinical trials by condition and status"
+            category: "research"
+            
+          - name: "get_clinical_trial_by_nct_id"
+            description: "Get detailed information for a specific clinical trial by NCT ID"
+            category: "research"
+            
+          - name: "extract_clinical_trial_concepts"
+            description: "Extract and map medical concepts from clinical trial eligibility criteria to UMLS vocabularies using AI-powered analysis"
+            category: "research"
+            requires_sampling: true
+            note: "Requires MCP protocol with sampling capability (not available via HTTP API)"
+            
+          - name: "extract_dicom_metadata"
+            description: "Extract metadata from DICOM medical imaging files"
+            category: "medical_imaging"
+            
+          - name: "fda_drug_lookup"
+            description: "Look up drug information from FDA database"
+            category: "pharmaceutical"
+            
+          - name: "get_clinical_concept_by_cui"
+            description: "Fetch clinical concepts by CUI from UMLS"
+            category: "terminology"
+            
+          - name: "get_concept_definitions_by_cui"
+            description: "Get detailed definitions for a clinical concept by CUI from multiple UMLS sources"
+            category: "terminology"
+            
+          - name: "get_related_clinical_concept_by_cui"
+            description: "Get related clinical concepts with pagination"
+            category: "terminology"
+            
+          - name: "get_source_abbreviations"
+            description: "Fetch UMLS source abbreviations"
+            category: "terminology"
+            
+          - name: "get_usage_stats"
+            description: "Get current session usage statistics"
+            category: "monitoring"
+            
+          - name: "get_all_usage_stats"
+            description: "Get overall usage statistics for all sessions"
+            category: "monitoring"
+            
+          - name: "health_topics"
+            description: "Get evidence-based health information"
+            category: "health_information"
+            
+          - name: "lookup_icd_code"
+            description: "Look up ICD-10 codes by code or description"
+            category: "medical_coding"
+            
+          - name: "medrxiv_search"
+            description: "Search pre-print articles on medRxiv"
+            category: "research"
+            
+          - name: "ncbi_bookshelf_search"
+            description: "Search NCBI Bookshelf for biomedical documents"
+            category: "research"
+            
+          - name: "pubmed_search"
+            description: "Search medical literature in PubMed database"
+            category: "research"
+            
+          - name: "search_clinical_concepts"
+            description: "Search clinical concepts in UMLS Metathesaurus"
+            category: "terminology"
+
+      # Dependencies and Prerequisites
+      dependencies:
+        system:
+          - docker: ">=20.0.0"
+          - docker-compose: ">=2.0.0"
+        apis:
+          - name: "UMLS Metathesaurus"
+            url: "https://uts.nlm.nih.gov/uts/"
+            required: true
+            description: "Primary source for clinical terminology"
+          - name: "FDA API"
+            url: "https://open.fda.gov/"
+            required: false
+            description: "Drug information and adverse events"
+          - name: "PubMed API"
+            url: "https://www.ncbi.nlm.nih.gov/books/NBK25497/"
+            required: false
+            description: "Medical literature search"
+
+      # Installation Instructions
+      installation:
+        steps:
+          - description: "Clone the repository"
+            command: "git clone https://github.com/cicatriiz/healthcare-mcp-public.git"
+          - description: "Navigate to project directory"
+            command: "cd healthcare-mcp-public"
+          - description: "Create environment file"
+            command: "cp .env.example .env"
+          - description: "Configure API keys in .env file"
+            note: "Add your UMLS_API_KEY and optional FDA_API_KEY, PUBMED_API_KEY"
+          - description: "Build and start Docker container"
+            command: "docker compose up -d --build"
+          - description: "Verify health status"
+            command: "curl http://localhost:3000/health"
+
+      # Usage Examples
+      examples:
+        - name: "Search Clinical Concepts"
+          description: "Search for diabetes-related clinical concepts"
+          mcp_client_config: |
+            {
+              "mcpServers": {
+                "healthcare-mcp": {
+                  "command": "docker",
+                  "args": ["exec", "-i", "healthcare-mcp-server", "node", "server/index.js"]
+                }
+              }
+            }
+            
+        - name: "HTTP Access"
+          description: "Direct HTTP access to the server"
+          curl_example: |
+            curl -X POST http://localhost:3000/mcp \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {
+                  "name": "search_clinical_concepts",
+                  "arguments": {
+                    "concept": "diabetes",
+                    "search_type": "words",
+                    "max_results": 5
+                  }
+                }
+              }'
+
+      # Monitoring and Maintenance
+      monitoring:
+        endpoints:
+          - name: "health"
+            path: "/health"
+            method: "GET"
+            description: "Container health check"
+          - name: "metrics"
+            path: "/api/usage/stats"
+            method: "GET"
+            description: "Usage statistics"
+        logs:
+          location: "/app/logs"
+          retention: "7d"
+          
+      # Security Configuration
+      security:
+        api_keys:
+          - "UMLS_API_KEY"
+          - "FDA_API_KEY"
+          - "PUBMED_API_KEY"
+        network:
+          expose_ports: ["3000"]
+          internal_communication: true
+        data:
+          encryption_at_rest: false
+          pii_handling: "medical_data_compliant"
+
+      # Maintenance
+      maintenance:
+        updates:
+          frequency: "monthly"
+          automatic: false
+        backups:
+          data_directory: "./data"
+          frequency: "weekly"
+        troubleshooting:
+          common_issues:
+            - issue: "Container fails to start"
+              solution: "Check API key configuration in .env file"
+            - issue: "Health check fails"
+              solution: "Ensure port 3000 is not blocked by firewall"
+            - issue: "API responses are slow"
+              solution: "Check CACHE_TTL setting and container resources"
+
+# Catalog Metadata
+catalog:
+  tags:
+    - healthcare
+    - medical
+    - mcp
+    - docker
+    - api
+    - clinical-terminology
+    - research
+    - fda
+    - pubmed
+    - umls
+  categories:
+    - Medical Information Systems
+    - Healthcare APIs
+    - Clinical Research Tools
+    - Medical Terminology Services
+  compatibility:
+    mcp_version: ">=1.0.0"
+    docker_version: ">=20.0.0"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+      - darwin/amd64
+      - darwin/arm64
