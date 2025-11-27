@@ -3,18 +3,25 @@ version: '3.8'
 services:
   healthcare-mcp:
     build: .
+    container_name: healthcare-mcp
+    stdin_open: true
+    tty: false
+    networks:
+      - default
+      - mcp-network
     ports:
       - "3000:3000"
     environment:
       - PORT=3000
       - HOST=0.0.0.0
       - NODE_ENV=production
-      - FDA_API_KEY=${FDA_API_KEY:-}
-      - PUBMED_API_KEY=${PUBMED_API_KEY:-}
-      - UMLS_API_KEY=${UMLS_API_KEY:-}
+      - FDA_API_KEY=${FDA_API_KEY}
+      - PUBMED_API_KEY=${PUBMED_API_KEY}
+      - UMLS_API_KEY=${UMLS_API_KEY}
       - CACHE_TTL=${CACHE_TTL:-86400}
     volumes:
       - ./data:/app/data
+    command: ["http"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
@@ -26,4 +33,8 @@ services:
       resources:
         limits:
           cpus: '1'
-          memory: 1G
+          memory: 2G
+
+networks:
+  mcp-network:
+    external: true

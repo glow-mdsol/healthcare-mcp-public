@@ -1,0 +1,72 @@
+# LibreChat Configuration for Healthcare MCP Server
+# Place this in your LibreChat root directory as librechat.yaml
+
+version: 1.1.5
+
+# MCP (Model Context Protocol) Server Configuration
+mcpServers:
+  healthcare-mcp:
+    # SSE Transport (for remote/HTTP-based MCP servers)
+    url: http://localhost:3000/sse
+    
+    # Alternative: Docker-based stdio deployment
+    # command: docker
+    # args:
+    #   - exec
+    #   - -i
+    #   - healthcare-mcp
+    #   - node
+    #   - server/index.js
+    
+    # Alternative: Direct Node.js stdio execution
+    # command: node
+    # args:
+    #   - /path/to/healthcare-mcp-public/server/index.js
+    # env:
+    #   UMLS_API_KEY: your_umls_api_key_here
+    #   FDA_API_KEY: your_fda_api_key_here
+    #   PUBMED_API_KEY: your_pubmed_api_key_here
+    #   CACHE_TTL: "86400"
+    
+    metadata:
+      description: "Healthcare MCP Server - Access to medical research, clinical trials, drug information, and medical terminology"
+      icon: "🏥"
+      tags:
+        - healthcare
+        - medical
+        - research
+        - clinical-trials
+        - fda
+        - pubmed
+        - umls
+
+# Optional: Configure which models can use the MCP server
+endpoints:
+  custom:
+    - name: "Healthcare Assistant"
+      apiKey: "${OPENAI_API_KEY}"
+      baseURL: "https://api.openai.com/v1"
+      models:
+        default:
+          - "gpt-4"
+          - "gpt-4-turbo-preview"
+          - "gpt-3.5-turbo"
+      mcpServers:
+        - healthcare-mcp
+      summarize: false
+      titleConvo: true
+      titleModel: "gpt-3.5-turbo"
+
+# Optional: Ollama integration
+  ollama:
+    apiKey: "ollama"
+    baseURL: "http://localhost:11434/v1"
+    models:
+      default:
+        - "llama3.1"
+        - "llama3.2"
+        - "mistral"
+    mcpServers:
+      - healthcare-mcp
+    fetch: true
+    titleModel: "llama3.1"
