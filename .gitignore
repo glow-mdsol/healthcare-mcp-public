@@ -59,3 +59,8 @@ payments_config.json
 stripe_keys.json
 
 .continue
+
+# Ignore compiled files and assets
+*.mcpb
+*.dxt
+
