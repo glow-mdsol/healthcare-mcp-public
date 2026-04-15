@@ -3,8 +3,8 @@
   "name": "healthcare-mcp",
   "display_name": "Healthcare MCP Server",
   "version": "2.1.1",
-  "description": "Healthcare MCP server providing AI assistants with access to healthcare data and medical information tools",
-  "long_description": "A comprehensive Model Context Protocol (MCP) server that enables AI assistants to access healthcare data and medical information from authoritative sources. Features include FDA drug information, PubMed research search, health topics from Health.gov, clinical trials search, and ICD-10 code lookup. The server includes efficient caching, usage tracking, and robust error handling for reliable healthcare data access.",
+  "description": "Healthcare MCP server providing AI assistants with healthcare data, clinical research, and UMLS-powered medical concept tools",
+  "long_description": "A comprehensive Model Context Protocol (MCP) server that enables AI assistants to access healthcare data and medical information from authoritative sources. Features include FDA drug information, PubMed and medRxiv research search, health topics from Health.gov, clinical trials search, DICOM metadata extraction, and UMLS concept exploration (search, definitions, relationships, and source abbreviations). The server also supports AI-powered concept extraction from clinical trial eligibility criteria, efficient caching, usage tracking, and robust error handling for reliable healthcare data access.",
   "author": {
     "name": "Cicatriiz",
     "url": "https://github.com/Cicatriiz"
@@ -26,6 +26,8 @@
       ],
       "env": {
         "FDA_API_KEY": "${user_config.fda_api_key}",
+        "PUBMED_API_KEY": "${user_config.pubmed_api_key}",
+        "UMLS_API_KEY": "${user_config.umls_api_key}",
         "CACHE_TTL": "${user_config.cache_ttl}",
         "DEBUG": "${user_config.debug_mode}"
       }
@@ -47,6 +49,14 @@
     {
       "name": "clinical_trials_search",
       "description": "Search for clinical trials by condition, status, and other parameters"
+    },
+    {
+      "name": "get_clinical_trial_by_nct_id",
+      "description": "Get detailed information for a specific clinical trial by its NCT ID"
+    },
+    {
+      "name": "extract_clinical_trial_concepts",
+      "description": "Extract and map clinical trial eligibility concepts to UMLS standardized vocabularies"
     },
     {
       "name": "lookup_icd_code",
@@ -75,6 +85,26 @@
     {
       "name": "extract_dicom_metadata",
       "description": "Extract metadata from a DICOM file"
+    },
+    {
+      "name": "search_clinical_concepts",
+      "description": "Search for clinical concepts in the UMLS Metathesaurus"
+    },
+    {
+      "name": "get_clinical_concept_by_cui",
+      "description": "Fetch a UMLS clinical concept by CUI"
+    },
+    {
+      "name": "get_concept_definitions_by_cui",
+      "description": "Get concept definitions for a given UMLS CUI"
+    },
+    {
+      "name": "get_related_clinical_concept_by_cui",
+      "description": "Get related clinical concepts and relationships for a given UMLS CUI"
+    },
+    {
+      "name": "get_source_abbreviations",
+      "description": "List available UMLS source vocabulary abbreviations"
     }
   ],
   "keywords": [
@@ -97,6 +127,20 @@
       "type": "string",
       "title": "FDA API Key",
       "description": "Optional FDA API key for increased rate limits. Leave empty to use without authentication.",
+      "sensitive": true,
+      "required": false
+    },
+    "pubmed_api_key": {
+      "type": "string",
+      "title": "PubMed API Key",
+      "description": "Optional NCBI/PubMed API key to improve search throughput and rate limits.",
+      "sensitive": true,
+      "required": false
+    },
+    "umls_api_key": {
+      "type": "string",
+      "title": "UMLS API Key",
+      "description": "Required for UMLS tools (clinical concept search, definitions, and relationships).",
       "sensitive": true,
       "required": false
     },

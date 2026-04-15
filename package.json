@@ -11,7 +11,10 @@
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "test": "node --test",
-    "server:http": "node server/http-server.js"
+    "server:http": "node server/http-server.js",
+    "build:dxt": "node scripts/build-package.js dxt",
+    "build:mcpb": "node scripts/build-package.js mcpb",
+    "build:packages": "node scripts/build-package.js all"
   },
   "keywords": [
     "healthcare",

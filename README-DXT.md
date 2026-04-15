@@ -274,6 +274,16 @@ To create a new DXT package:
 npm run build:dxt
 ```
 
+To create an MCP bundle package:
+```bash
+npm run build:mcpb
+```
+
+To generate both package formats:
+```bash
+npm run build:packages
+```
+
 ## API Rate Limits
 
 Default rate limits (can be configured):

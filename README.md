@@ -7,9 +7,12 @@ A Model Context Protocol (MCP) server providing AI assistants with access to hea
 
 Healthcare MCP Server is a specialized Node.js server that implements the Model Context Protocol (MCP) to provide AI assistants with access to healthcare data and medical information tools. It enables AI models to retrieve accurate, up-to-date medical information from authoritative sources. This repository provides a single DXT package containing the complete Node.js implementation.
 
-## DXT Extension
+## Packaged Extensions
 
-This repository includes a packaged DXT (Desktop Extension) file for easy installation in compatible development environments. Download `healthcare-mcp.dxt` for one-click installation.
+This repository includes packaged extension artifacts for easy installation in compatible development environments:
+
+- `healthcare-mcp.dxt`
+- `healthcare-mcp.mcpb`
 
 ## Features
 
@@ -38,12 +41,25 @@ This repository includes a packaged DXT (Desktop Extension) file for easy instal
 
 ## Installation
 
-### Option 1: DXT Extension (Recommended)
+### Option 1: Packaged Extension (Recommended)
 
-1. Download `healthcare-mcp.dxt` from this repository
+1. Download `healthcare-mcp.dxt` or `healthcare-mcp.mcpb` from this repository
 2. Open with your compatible MCP client (such as Claude Desktop)
 3. Follow the installation prompts
 4. Configure optional settings through the GUI
+
+### Build Package Files Locally
+
+```bash
+# Build MCPB package
+npm run build:mcpb
+
+# Build DXT package
+npm run build:dxt
+
+# Build both package formats
+npm run build:packages
+```
 
 ### Option 2: Installing via Smithery
 
