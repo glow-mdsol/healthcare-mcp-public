@@ -219,6 +219,12 @@ const SABS_BY_NAME = {
   'National Drug File': 'VANDF',
   'WHOART': 'WHO'
 }
+// Valid values for UTS REST search parameters
+// https://documentation.uts.nlm.nih.gov/rest/search/index.html
+const SEARCH_TYPES = ['words', 'exact', 'leftTruncation', 'rightTruncation', 'normalizedString', 'normalizedWords', 'approximate'];
+const RETURN_ID_TYPES = ['aui', 'concept', 'code', 'sourceConcept', 'sourceDescriptor', 'sourceUi'];
+const INPUT_TYPES = ['atom', 'code', 'sourceConcept', 'sourceDescriptor', 'sourceUi', 'tty'];
+
 /**
  * Tool for searching clinical concepts from UMLS
  */
@@ -630,13 +636,17 @@ export class ClinicalConceptsTool extends BaseTool {
 
   /**
    * Search for a clinical concept in the UMLS Metathesaurus
+   * @see https://documentation.uts.nlm.nih.gov/rest/search/index.html
    * @params {string} concept - The search string for the clinical concept
    * @params {string} version - The UMLS version to search against
-   * @params {string} searchType - The type of search (exact, words, leftTruncation, rightTruncation, normalizedString, normalizedWords)
+   * @params {string} searchType - The type of search (words, exact, leftTruncation, rightTruncation, normalizedString, normalizedWords, approximate)
    * @params {number} maxResults - The maximum number of results to return (1-1000)
-   * @params {array} sources - Optional array of source abbreviations (SABs) to filter the search
+   * @params {array} sources - Optional array of source abbreviations (SABs) to restrict the search (sabs)
+   * @params {string} returnIdType - The type of identifier to return (aui, concept, code, sourceConcept, sourceDescriptor, sourceUi). Defaults to "concept" (CUIs)
+   * @params {string} inputType - The data type of the search string (atom, code, sourceConcept, sourceDescriptor, sourceUi, tty)
+   * @params {boolean} partialSearch - Whether to include partial matches
    */
-  async searchConcept(concept, version = "current", searchType = "exact", maxResults = 10, sources = []) {
+  async searchConcept(concept, version = "current", searchType = "words", maxResults = 10, sources = [], returnIdType = "concept", inputType = "", partialSearch = false) {
     // Input validation
     if (!concept) {
       return this.formatErrorResponse('Concept is required');
@@ -655,8 +665,28 @@ export class ClinicalConceptsTool extends BaseTool {
       validMaxResults = 10;
     }
 
-    // Create cache key
-    const cacheKey = this.getCacheKey('clinical_concepts', concept, validMaxResults);
+    // Validate and normalise the source abbreviations (sabs) filter
+    const validSources = (Array.isArray(sources) ? sources : [])
+      .map(s => String(s).toUpperCase())
+      .filter(s => SABS.includes(s));
+
+    // Validate optional search parameters, falling back to defaults when invalid
+    const validReturnIdType = RETURN_ID_TYPES.includes(returnIdType) ? returnIdType : 'concept';
+    const validInputType = INPUT_TYPES.includes(inputType) ? inputType : '';
+    const validPartialSearch = partialSearch === true || partialSearch === 'true';
+
+    // Create cache key (includes every parameter that affects the result set)
+    const cacheKey = this.getCacheKey(
+      'clinical_concepts',
+      concept,
+      version,
+      searchType,
+      validMaxResults,
+      validSources.join(','),
+      validReturnIdType,
+      validInputType,
+      validPartialSearch
+    );
 
     // Check cache first
     const cachedResult = this.cache.get(cacheKey);
@@ -684,15 +714,22 @@ export class ClinicalConceptsTool extends BaseTool {
           'apiKey': process.env.UMLS_API_KEY || ''
         };
 
-        if (['exact', 'words', 'leftTruncation', 'rightTruncation', 'normalizedString', 'normalizedWords'].includes(searchType)) {
+        if (SEARCH_TYPES.includes(searchType)) {
           params['searchType'] = searchType;
         }
-        if (sources && Array.isArray(sources) && sources.length > 0) {
-          // Validate and filter sources
-          const validSources = sources.map(s => s.toUpperCase()).filter(s => SABS.includes(s));
-          if (validSources.length > 0) {
-            params['sabs'] = validSources.join(',');
-          }
+        // Restrict the search to specific source vocabularies (SABs)
+        if (validSources.length > 0) {
+          params['sabs'] = validSources.join(',');
+        }
+        // returnIdType defaults to "concept" (CUIs); only send when non-default
+        if (validReturnIdType && validReturnIdType !== 'concept') {
+          params['returnIdType'] = validReturnIdType;
+        }
+        if (validInputType) {
+          params['inputType'] = validInputType;
+        }
+        if (validPartialSearch) {
+          params['partialSearch'] = true;
         }
         const url = this.buildUrl(`${this.baseUrl}/search/${version}`, params);
 
@@ -760,7 +797,11 @@ export class ClinicalConceptsTool extends BaseTool {
       // Create result object
       const result = this.formatSuccessResponse({
         concept: concept,
+        version: version,
         searchType: searchType,
+        returnIdType: validReturnIdType,
+        sources: validSources,
+        partialSearch: validPartialSearch,
         totalCount: totalCount,
         returnedCount: allResults.length,
         maxRequested: validMaxResults,

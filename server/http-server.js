@@ -17,6 +17,7 @@ import { DicomTool } from './dicom-tool.js';
 import { UsageService } from './usage-service.js';
 import { ClinicalConceptsTool } from './umls-catalog-search.js';
 import { ClinicalTrialsConceptExtractorTool } from './clinical-trials-concept-extractor-tool.js';
+import { TOOL_DEFINITIONS } from './tool-definitions.js';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const sessionId = randomUUID();
@@ -41,199 +42,9 @@ const conceptExtractorTool = new ClinicalTrialsConceptExtractorTool(
 );
 
 // Define tool schemas - matches the stdio server definitions
-const TOOL_SCHEMAS = [
-  {
-    name: "fda_drug_lookup",
-    description: "Look up drug information from the FDA database",
-    inputSchema: {
-      type: "object",
-      properties: {
-        drug_name: { type: "string", description: "Name of the drug to search for" },
-        search_type: {
-          type: "string",
-          description: "Type of information to retrieve",
-          enum: ["general", "label", "adverse_events"],
-          default: "general"
-        }
-      },
-      required: ["drug_name"]
-    }
-  },
-  {
-    name: "pubmed_search",
-    description: "Search for medical literature in PubMed database",
-    inputSchema: {
-      type: "object",
-      properties: {
-        query: { type: "string", description: "Search query for PubMed" },
-        max_results: { type: "number", description: "Maximum number of results", default: 5 },
-        date_range: { type: "string", description: "Date range filter (e.g., '1 year')" },
-        open_access: { type: "boolean", description: "Filter for open access articles only", default: false }
-      },
-      required: ["query"]
-    }
-  },
-  {
-    name: "clinical_trials_search",
-    description: "Search for clinical trials on ClinicalTrials.gov",
-    inputSchema: {
-      type: "object",
-      properties: {
-        condition: { type: "string", description: "Medical condition or disease" },
-        status: { type: "string", description: "Trial status", enum: ["recruiting", "active", "completed"], default: "recruiting" },
-        max_results: { type: "number", description: "Maximum number of results", default: 10 }
-      },
-      required: ["condition"]
-    }
-  },
-  {
-    name: "get_clinical_trial_by_nct_id",
-    description: "Get detailed information about a clinical trial by its NCT ID",
-    inputSchema: {
-      type: "object",
-      properties: {
-        nct_id: { type: "string", description: "NCT identifier (e.g., NCT12345678)" }
-      },
-      required: ["nct_id"]
-    }
-  },
-  {
-    name: "search_clinical_concepts",
-    description: "Search UMLS for clinical concepts",
-    inputSchema: {
-      type: "object",
-      properties: {
-        concept: { type: "string", description: "Concept to search for" },
-        version: { type: "string", description: "UMLS version", default: "current" },
-        search_type: { type: "string", description: "Search type", enum: ["exact", "words", "leftTruncation", "rightTruncation", "approximate"], default: "words" },
-        max_results: { type: "number", description: "Maximum results", default: 10 },
-        sources: { type: "array", items: { type: "string" }, description: "Restrict to specific sources" }
-      },
-      required: ["concept"]
-    }
-  },
-  {
-    name: "get_clinical_concept_by_cui",
-    description: "Get UMLS concept by CUI identifier",
-    inputSchema: {
-      type: "object",
-      properties: {
-        cui: { type: "string", description: "Concept Unique Identifier" },
-        version: { type: "string", description: "UMLS version", default: "current" }
-      },
-      required: ["cui"]
-    }
-  },
-  {
-    name: "get_concept_definitions_by_cui",
-    description: "Get definitions for a UMLS concept",
-    inputSchema: {
-      type: "object",
-      properties: {
-        cui: { type: "string", description: "Concept Unique Identifier" },
-        version: { type: "string", description: "UMLS version", default: "current" },
-        sources: { type: "array", items: { type: "string" }, description: "Filter by sources" },
-        max_results: { type: "number", description: "Maximum results", default: 10 },
-        page_number: { type: "number", description: "Page number for pagination", default: 1 }
-      },
-      required: ["cui"]
-    }
-  },
-  {
-    name: "get_related_clinical_concept_by_cui",
-    description: "Get related concepts for a UMLS concept",
-    inputSchema: {
-      type: "object",
-      properties: {
-        cui: { type: "string", description: "Concept Unique Identifier" },
-        version: { type: "string", description: "UMLS version", default: "current" },
-        sources: { type: "array", items: { type: "string" }, description: "Filter by sources" },
-        max_results: { type: "number", description: "Maximum results", default: 10 },
-        page_number: { type: "number", description: "Page number for pagination", default: 1 }
-      },
-      required: ["cui"]
-    }
-  },
-  {
-    name: "lookup_icd_code",
-    description: "Look up ICD-10 codes",
-    inputSchema: {
-      type: "object",
-      properties: {
-        code: { type: "string", description: "ICD-10 code" },
-        description: { type: "string", description: "Description to search for" },
-        max_results: { type: "number", description: "Maximum results", default: 10 }
-      }
-    }
-  },
-  {
-    name: "health_topics",
-    description: "Get health topic information from MedlinePlus",
-    inputSchema: {
-      type: "object",
-      properties: {
-        topic: { type: "string", description: "Health topic to search for" },
-        language: { type: "string", description: "Language code", default: "en" }
-      },
-      required: ["topic"]
-    }
-  },
-  {
-    name: "medrxiv_search",
-    description: "Search medRxiv for medical preprints",
-    inputSchema: {
-      type: "object",
-      properties: {
-        query: { type: "string", description: "Search query" },
-        max_results: { type: "number", description: "Maximum results", default: 10 }
-      },
-      required: ["query"]
-    }
-  },
-  {
-    name: "calculate_bmi",
-    description: "Calculate Body Mass Index",
-    inputSchema: {
-      type: "object",
-      properties: {
-        height_meters: { type: "number", description: "Height in meters" },
-        weight_kg: { type: "number", description: "Weight in kilograms" }
-      },
-      required: ["height_meters", "weight_kg"]
-    }
-  },
-  {
-    name: "ncbi_bookshelf_search",
-    description: "Search NCBI Bookshelf for biomedical books",
-    inputSchema: {
-      type: "object",
-      properties: {
-        query: { type: "string", description: "Search query" },
-        max_results: { type: "number", description: "Maximum results", default: 10 }
-      },
-      required: ["query"]
-    }
-  },
-  {
-    name: "extract_dicom_metadata",
-    description: "Extract metadata from DICOM medical images",
-    inputSchema: {
-      type: "object",
-      properties: {
-        file_path: { type: "string", description: "Path to DICOM file" }
-      },
-      required: ["file_path"]
-    }
-  },
-  {
-    name: "get_usage_stats",
-    description: "Get usage statistics for the current session",
-    inputSchema: {
-      type: "object",
-      properties: {}
-    }
-  }
-];
+// Tool definitions (name, description, inputSchema, outputSchema) are shared
+// with the stdio server via ./tool-definitions.js to avoid drift.
+const TOOL_SCHEMAS = TOOL_DEFINITIONS;
 
 function writeJson(res, statusCode, body) {
   res.statusCode = statusCode;
@@ -312,13 +123,13 @@ async function handleCallTool(name, args) {
       // Note: LLM sampling is not available via HTTP API
       // This tool requires MCP protocol with sampling capability
       return {
-        success: false,
-        error: 'extract_clinical_trial_concepts requires MCP protocol with sampling capability. Please use the MCP client (stdio) to access this tool.'
+        status: 'error',
+        error_message: 'extract_clinical_trial_concepts requires MCP protocol with sampling capability. Please use the stdio transport to access this tool.'
       };
     case 'lookup_icd_code':
       return medicalTerminologyTool.lookupICDCode(args.code, args.description, args.max_results);
     case 'search_clinical_concepts':
-      return clinicalConceptsTool.searchConcept(args.concept, args.version, args.search_type, args.max_results, args.sources);
+      return clinicalConceptsTool.searchConcept(args.concept, args.version, args.search_type, args.max_results, args.sources, args.return_id_type, args.input_type, args.partial_search);
     case 'get_clinical_concept_by_cui':
       return clinicalConceptsTool.getConceptById(args.cui, args.version);
     case 'get_concept_definitions_by_cui':
@@ -336,13 +147,90 @@ async function handleCallTool(name, args) {
   }
 }
 
+// Process a single JSON-RPC message and return the response object.
+// Returns null for notifications (messages without an id), which expect no response.
+async function processRpcMessage(message) {
+  // Validate JSON-RPC 2.0 format
+  if (message.jsonrpc !== '2.0') {
+    return {
+      jsonrpc: '2.0',
+      id: message.id ?? null,
+      error: { code: -32600, message: 'Invalid Request: jsonrpc must be "2.0"' }
+    };
+  }
+
+  // Notifications (and responses) have no id and expect no reply
+  if (message.id === undefined || message.id === null) {
+    return null;
+  }
+
+  if (message.method === 'initialize') {
+    // Echo the client's requested protocol version when present
+    const protocolVersion = message.params?.protocolVersion || '2025-03-26';
+    return {
+      jsonrpc: '2.0',
+      id: message.id,
+      result: {
+        protocolVersion,
+        capabilities: { tools: {}, sampling: {} },
+        serverInfo: { name: 'healthcare-mcp', version: '2.1.1' }
+      }
+    };
+  }
+  if (message.method === 'ping') {
+    return { jsonrpc: '2.0', id: message.id, result: {} };
+  }
+  if (message.method === 'tools/list') {
+    return { jsonrpc: '2.0', id: message.id, result: { tools: TOOL_SCHEMAS } };
+  }
+  if (message.method === 'tools/call') {
+    const { name, arguments: args } = message.params;
+    const result = await handleCallTool(name, args || {});
+    return {
+      jsonrpc: '2.0',
+      id: message.id,
+      result: {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        // Machine-readable result, validated against the tool's outputSchema
+        structuredContent: result,
+        isError: result?.status === 'error'
+      }
+    };
+  }
+  return {
+    jsonrpc: '2.0',
+    id: message.id,
+    error: { code: -32601, message: `Method not found: ${message.method}` }
+  };
+}
+
+// Read and parse a JSON request body
+function readJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(body || '{}'));
+      } catch (err) {
+        reject(err);
+      }
+    });
+    req.on('error', reject);
+  });
+}
+
+// Track Streamable HTTP sessions (issued on initialize)
+const mcpSessions = new Set();
+
 const server = http.createServer(async (req, res) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     res.statusCode = 204;
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Mcp-Session-Id, MCP-Protocol-Version');
+    res.setHeader('Access-Control-Expose-Headers', 'Mcp-Session-Id');
     return res.end();
   }
 
@@ -350,6 +238,74 @@ const server = http.createServer(async (req, res) => {
   const pathname = url.pathname;
 
   try {
+    // MCP Streamable HTTP transport (spec 2025-03-26) - single endpoint
+    if (pathname === '/mcp') {
+      // POST: client sends one or more JSON-RPC messages
+      if (req.method === 'POST') {
+        let payload;
+        try {
+          payload = await readJsonBody(req);
+        } catch (err) {
+          return writeJson(res, 400, {
+            jsonrpc: '2.0',
+            id: null,
+            error: { code: -32700, message: 'Parse error: ' + err.message }
+          });
+        }
+
+        const messages = Array.isArray(payload) ? payload : [payload];
+        const isInitialize = messages.some(m => m && m.method === 'initialize');
+
+        const responses = [];
+        for (const message of messages) {
+          const response = await processRpcMessage(message);
+          if (response !== null) responses.push(response);
+        }
+
+        // Issue / surface the session id (Streamable HTTP session management)
+        let sessionHeaderId = req.headers['mcp-session-id'];
+        if (isInitialize) {
+          sessionHeaderId = randomUUID();
+          mcpSessions.add(sessionHeaderId);
+        }
+        if (sessionHeaderId) {
+          res.setHeader('Mcp-Session-Id', sessionHeaderId);
+        }
+
+        // Notifications/responses only -> nothing to return
+        if (responses.length === 0) {
+          res.statusCode = 202;
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          return res.end();
+        }
+
+        const body = Array.isArray(payload) ? responses : responses[0];
+        return writeJson(res, 200, body);
+      }
+
+      // GET: optional server-initiated SSE stream. This server has none, so 405.
+      if (req.method === 'GET') {
+        res.statusCode = 405;
+        res.setHeader('Allow', 'POST, DELETE');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        return res.end();
+      }
+
+      // DELETE: terminate the session
+      if (req.method === 'DELETE') {
+        const sid = req.headers['mcp-session-id'];
+        if (sid) mcpSessions.delete(sid);
+        res.statusCode = 204;
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        return res.end();
+      }
+
+      res.statusCode = 405;
+      res.setHeader('Allow', 'POST, DELETE');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      return res.end();
+    }
+
     // MCP SSE Transport endpoint - follows JSON-RPC 2.0 over SSE
     if (req.method === 'GET' && pathname === '/sse') {
       const connectionId = randomUUID();
@@ -457,7 +413,9 @@ const server = http.createServer(async (req, res) => {
                     type: 'text',
                     text: JSON.stringify(result, null, 2)
                   }
-                ]
+                ],
+                structuredContent: result,
+                isError: result?.status === 'error'
               }
             };
           }
